@@ -1,0 +1,68 @@
+1.  package main
+    
+    import (
+        "accounts/accounts"
+        "fmt"
+    )
+
+    func main() {
+        account := accounts.NewAccount("skan")
+        account.Deposit(10)
+        err := account.Withdraw(20)
+        if err != nil {
+            fmt.Println(err)
+        }
+        fmt.Println(account.Name(), account.Balance())
+        fmt.Println(account)
+    }
+
+2.  package accounts
+    
+    import (
+        "errors"
+        "fmt"
+    )
+
+    // Account structure
+    type Account struct {
+        name    string
+        balance int
+    }
+
+    var errNoMoney = errors.New("Balance is too low")
+
+    // New Account function
+    func NewAccount(name string) *Account {
+        account := Account{name: name, balance: 0}
+        return &account
+    }
+
+    // Deposit method
+    func (a *Account) Deposit(amount int) {
+        a.balance += amount
+    }
+
+    // Balance check method
+    func (a Account) Balance() int {
+        return a.balance
+    }
+
+    // Account Name check method
+    func (a Account) Name() string {
+        return a.name
+    }
+
+    // Withdraw method
+    func (a *Account) Withdraw(amount int) error {
+        if a.balance < amount {
+            return errNoMoney
+        }
+        a.balance -= amount
+        return nil
+    }
+
+    // Account string
+    func (a Account) String() string {
+        return fmt.Sprint(a.name, "'s balance : ", a.balance)
+    }
+

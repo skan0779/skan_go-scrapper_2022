@@ -1,0 +1,85 @@
+1. package main
+
+    import (
+        "fmt"
+        "time"
+    )
+
+    func main() {
+        c := make(chan string)
+        group := [2]string{"skan", "jung"}
+        for _, person := range group {
+            go checking(person, c)
+        }
+        
+        // 1번 방법
+        result1 := <-c
+        result2 := <-c
+        fmt.Println(result1)
+        fmt.Println(result2)
+
+        // 2번 방법
+        for i := 0; i < len(group); i++{
+            fmt.Println(<-c)
+        }
+
+    }
+
+    func checking(name string, c chan string) {
+        time.Sleep(time.Second * 5)
+        c <- name + " is ok"
+    }
+
+2. url checker (channel ver.)
+
+    package main
+
+    import (
+        "fmt"
+        "net/http"
+    )
+
+    type result struct {
+        url    string
+        status string
+    }
+
+    func main() {
+
+        data := map[string]string{}
+        c := make(chan result)
+
+        urls := []string{
+            "https://www.airbnb.com/",
+            "https://www.google.com/",
+            "https://www.amazon.com/",
+            "https://www.reddit.com/",
+            "https://www.google.com/",
+            "https://soundcloud.com/",
+            "https://www.facebook.com/",
+            "https://www.instagram.com/",
+            "https://academy.nomadcoders.co/",
+        }
+        for _, url := range urls {
+            go hit(url, c)
+        }
+        for i := 0; i < len(urls); i++ {
+            channelData := <-c
+            data[channelData.url] = channelData.status
+        }
+        for url, status := range data {
+            fmt.Println(url, ": ", status)
+        }
+    }
+
+    func hit(url string, c chan<- result) {
+        status := "complete"
+        resp, err := http.Get(url)
+        if err != nil || resp.StatusCode >= 400 {
+            fmt.Println(err)
+            status = "failed"
+        }
+        c <- result{url: url, status: status}
+
+    }
+

@@ -1,0 +1,127 @@
+package main
+
+import (
+	"encoding/csv"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+
+	"github.com/PuerkitoBio/goquery"
+)
+
+var LIMIT int = 50
+var MAIN_URL string = "https://kr.indeed.com/jobs?q=python&limit=" + strconv.Itoa(LIMIT)
+
+type jobData struct {
+	id       string
+	location string
+	title    string
+	salary   string
+	summary  string
+}
+
+func main() {
+	var jobs []jobData
+	pageNum := getPageNum()
+	for i := 0; i < pageNum; i++ {
+		jobSlice := getPage(i)
+		jobs = append(jobs, jobSlice...)
+	}
+	saveJobData(jobs)
+	fmt.Println("Save done !")
+}
+
+func getPage(i int) []jobData {
+	// 5
+	var jobs []jobData
+	// 1
+	PAGE_URL := MAIN_URL + "&start=" + strconv.Itoa(i*LIMIT)
+	// 2
+	fmt.Println("Requesting: ", PAGE_URL)
+	res, err := http.Get(PAGE_URL)
+	if err != nil {
+		log.Fatalln("err")
+	}
+	if res.StatusCode != 200 {
+		log.Fatalln("err: ", res.StatusCode)
+	}
+	// 3
+	defer res.Body.Close()
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatalln("err")
+	}
+	jobBox := doc.Find(".tapItem")
+	jobBox.Each(func(i int, s *goquery.Selection) {
+		// 4
+		job := getJobData(s)
+		jobs = append(jobs, job)
+	})
+	return jobs
+}
+
+func getPageNum() int {
+	// 1
+	res, err := http.Get(MAIN_URL)
+	if err != nil {
+		log.Fatalln("err")
+	}
+	if res.StatusCode != 200 {
+		log.Fatalln("err: ", res.StatusCode)
+	}
+	// 2
+	defer res.Body.Close()
+	pageNum := 0
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatalln("err")
+	}
+	doc.Find(".pagination").Each(func(i int, s *goquery.Selection) {
+		pageNum = s.Find("a").Length()
+	})
+	// 3
+	return pageNum
+}
+
+func getJobData(s *goquery.Selection) jobData {
+	id, _ := s.Attr("data-jk")
+	title := s.Find("h2>span").Text()
+	location := s.Find(".companyLocation").Text()
+	salary := s.Find(".salary-snippet").Text()
+	summary := s.Find(".job-snippet").Text()
+	return jobData{
+		id:       id,
+		location: location,
+		title:    title,
+		salary:   salary,
+		summary:  summary}
+}
+
+func saveJobData(jobs []jobData) {
+	// file 만들기
+	f, err := os.Create("jobs.csv")
+	if err != nil {
+		log.Fatalln("err")
+	}
+	// writer 만들기
+	w := csv.NewWriter(f)
+
+	header := []string{"ID", "Location", "Title", "Salary", "Summary"}
+	err2 := w.Write(header)
+	if err2 != nil {
+		log.Fatalln("err")
+	}
+	for _, job := range jobs {
+		jobDetail := []string{job.id, job.location, job.title, job.salary, job.summary}
+		err3 := w.Write(jobDetail)
+		if err3 != nil {
+			log.Fatalln("err")
+		}
+
+	}
+
+	// file 저장
+	defer w.Flush()
+}

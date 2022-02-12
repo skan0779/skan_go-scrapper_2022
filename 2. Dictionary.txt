@@ -1,0 +1,93 @@
+1. package main
+
+    import (
+        "accounts/dicts"
+        "fmt"
+    )
+
+    func main() {
+        dictionary := dicts.Dictionary{"a": "apple"}
+
+        // Add
+        err2 := dictionary.Add("b", "banana")
+        if err2 != nil {
+            fmt.Println(err2)
+        }
+
+        // Update
+        err3 := dictionary.Update("b", "banana2")
+        if err3 != nil {
+            fmt.Println(err3)
+        }
+
+        // Delete
+        err4 := dictionary.Delete("a")
+        if err4 != nil {
+            fmt.Println(err4)
+        }
+
+        // search
+        value, err := dictionary.Search("b")
+        if err != nil {
+            fmt.Println(err)
+        } else {
+            fmt.Println(value)
+        }
+    }
+
+2. package dicts
+
+    import "errors"
+
+    // Dictionary type
+    type Dictionary map[string]string
+
+    // Error
+    var errKeyNotFound = errors.New("Key doesn't exist")
+    var errKeyExist = errors.New("Key already exist")
+
+    // Search method
+    func (d Dictionary) Search(key string) (string, error) {
+        value, exist := d[key]
+        if exist {
+            return value, nil
+        }
+        return "", errKeyNotFound
+    }
+
+    // Add method
+    func (d Dictionary) Add(key, value string) error {
+        _, err := d.Search(key)
+        switch err {
+        case errKeyNotFound:
+            d[key] = value
+        case nil:
+            return errKeyExist
+        }
+        return nil
+    }
+
+    // Update method
+    func (d Dictionary) Update(key, value string) error {
+        _, err := d.Search(key)
+        switch err {
+        case nil:
+            d[key] = value
+        case errKeyNotFound:
+            return errKeyNotFound
+        }
+        return nil
+    }
+
+    // Delete method
+    func (d Dictionary) Delete(key string) error {
+        _, err := d.Search(key)
+        switch err {
+        case nil:
+            delete(d, key)
+        case errKeyNotFound:
+            return errKeyNotFound
+        }
+        return nil
+    }
+
